@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(Puponvst VERSION 1.0.4 LANGUAGES C CXX)
+project(Puponvst VERSION 1.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -21,11 +21,12 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/breakfastquay/rubberband.git
         GIT_TAG        v4.0.0
 )
-# 用 Populate 而不是 MakeAvailable，避免触发其顶层构建脚本
-FetchContent_GetProperties(rubberband)
-if(NOT rubberband_POPULATED)
-    FetchContent_Populate(rubberband)
-endif()
+# 用 FetchContent_MakeAvailable（CMake 3.30+ 起，单参数的 FetchContent_Populate()
+# 已废弃，会触发 CMP0169 的 dev 警告）。
+# Rubber Band 顶层只有 meson.build、没有 CMakeLists.txt，因此 MakeAvailable
+# 只会把源码拉到 rubberband_SOURCE_DIR，不会把它 add_subdirectory 进本工程，
+# 效果与旧的 Populate 一致 —— 我们仍然用官方 single-file unity build 自己编。
+FetchContent_MakeAvailable(rubberband)
 
 # Apply local Rubber Band patch (v4.0.0) in a reproducible way.
 set(RUBBERBAND_PATCH_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/rubberband-v4.0.0-resampler-quality.patch")
@@ -67,7 +68,7 @@ endif()
 juce_add_plugin(
         Puponvst
         PRODUCT_NAME "Pupon"
-        VERSION 1.0.4
+        VERSION 1.1.0
         COMPANY_NAME "iisaacbeas.cn"
         BUNDLE_ID "cn.iisaacbeas.Pupon"
         PLUGIN_MANUFACTURER_CODE Pupo
@@ -81,6 +82,7 @@ juce_add_plugin(
         # AU 必需的插件分类（效果器）
         AU_MAIN_TYPE kAudioUnitType_Effect
         COPY_PLUGIN_AFTER_BUILD TRUE
+        NEEDS_CURL TRUE
 )
 
 juce_generate_juce_header(Puponvst)
@@ -94,6 +96,8 @@ juce_add_binary_data(PuponvstBinaryData
 target_compile_definitions(Puponvst
   PUBLIC
     JUCE_VST3_CAN_REPLACE_VST2=0
+    # https 请求（遥测 / 更新检查）依赖 CURL 后端，关闭会静默失败
+    JUCE_USE_CURL=1
 )
 
 target_sources(Puponvst PRIVATE
@@ -103,6 +107,13 @@ target_sources(Puponvst PRIVATE
   PluginEditor.h
   PitchShiftEngine.cpp
   PitchShiftEngine.h
+  shared/IisaacTelemetry.h
+  source/network/Version.h
+  source/network/Version.cpp
+  source/network/UpdateChecker.h
+  source/network/UpdateChecker.cpp
+  source/ui/UpdateDialog.h
+  source/ui/UpdateDialog.cpp
   # Rubber Band single-file unity build（见官方 single/RubberBandSingle.cpp 说明，
   # 里面已内置 USE_BUILTIN_FFT / USE_BQRESAMPLER / NO_THREADING 等宏）
   ${rubberband_SOURCE_DIR}/single/RubberBandSingle.cpp

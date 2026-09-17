@@ -1,7 +1,14 @@
 #define MyAppName "Pupon"
-#define MyAppVersion "1.0.4"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "iisaacbeats.cn"
 #define MyPluginBundle "Pupon.vst3"
+
+; VST3 顶层目录（即包含 Pupon.vst3 bundle 的父目录）。
+; 默认指向 Visual Studio / CLion 的 Release 构建目录；
+; build_installer.bat 会用 -DVST3_DIR 覆盖为实际探测到的路径。
+#ifndef VST3_DIR
+  #define VST3_DIR "cmake-build-release-visual-studio\Puponvst_artefacts\Release\VST3"
+#endif
 
 [Setup]
 AppId={{0E3BF70B-5D5C-4F0F-B6E4-50F8C4B55C01}
@@ -28,7 +35,7 @@ DisableDirPage=no
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "cmake-build-release\Puponvst_artefacts\Release\VST3\{#MyPluginBundle}\*"; DestDir: "{app}\{#MyPluginBundle}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#VST3_DIR}\{#MyPluginBundle}\*"; DestDir: "{app}\{#MyPluginBundle}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "presents\*"; DestDir: "{userdocs}\puponpresent"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Code]

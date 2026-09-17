@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "shared/IisaacTelemetry.h"
 #include "PluginProcessor.h"
 #include "BinaryData.h"
 #include <functional>
@@ -96,7 +97,7 @@ PuponvstAudioProcessorEditor::PuponvstAudioProcessorEditor(PuponvstAudioProcesso
     titleLabel.setInterceptsMouseClicks(false, false);  // 允许鼠标事件穿透，以便编辑器统一处理点击
 
     // 副标题：仅显示版本号（普通无衬线字体，字号更小）
-    versionLabel.setText("v1.0.4", juce::dontSendNotification);
+    versionLabel.setText("v1.1.0", juce::dontSendNotification);
     versionLabel.setColour(juce::Label::textColourId, juce::Colours::white.withAlpha(0.48f));
     versionLabel.setJustificationType(juce::Justification::centredLeft);
     {
@@ -285,10 +286,15 @@ PuponvstAudioProcessorEditor::PuponvstAudioProcessorEditor(PuponvstAudioProcesso
 
     // 启动动效计时器：约 40 FPS，既能保证丝滑，又不浪费 CPU
     startTimerHz(40);
+
+    telemetrySession = std::make_unique<iisaac::telemetry::Session>(
+        iisaac::telemetry::forPlugin("pupon", JucePlugin_VersionString,
+                                   JucePlugin_VersionString, processor.wrapperType));
 }
 
 PuponvstAudioProcessorEditor::~PuponvstAudioProcessorEditor()
 {
+    telemetrySession.reset();
     stopTimer();
     cancelPendingUpdate(); // 取消挂起的异步更新，防止析构后回调
 
@@ -1395,6 +1401,14 @@ void PuponvstAudioProcessorEditor::mouseUp(const juce::MouseEvent&)
 
     if (wasDraggingDot || wasDraggingDotColumn || wasDraggingFilterAxis || wasDraggingFilterParabola)
         repaint(); // 清除被拖动圆点/竖线的高亮描边
+}
+
+juce::String PuponvstAudioProcessorEditor::getTooltip()
+{
+    if (versionLabel.getBounds().contains(getMouseXYRelative()))
+        return "Basic usage statistics: product/version, random per-product installation ID, OS/architecture and host/format. No audio or project data.";
+
+    return {};
 }
 
 void PuponvstAudioProcessorEditor::mouseMove(const juce::MouseEvent& event)

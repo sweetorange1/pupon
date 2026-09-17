@@ -1,6 +1,8 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "source/network/UpdateChecker.h"
+#include <atomic>
 #include <cmath>
 
 namespace
@@ -12,6 +14,32 @@ constexpr std::array<const char*, 5> kDotGainParamIds {
 constexpr std::array<const char*, 5> kDotSemitoneParamIds {
     "dot0Semitone", "dot1Semitone", "dot2Semitone", "dot3Semitone", "dot4Semitone"
 };
+}
+
+// 平台标识（与遥测口径一致，<os>-<arch>）
+static juce::String GetUpdatePlatformString()
+{
+#if defined(_M_ARM64) || defined(_M_ARM64EC) || defined(__aarch64__) || defined(__arm64__)
+    const juce::String arch = "arm64";
+#elif defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
+    const juce::String arch = "x64";
+#else
+    const juce::String arch = "x86";
+#endif
+
+#if JUCE_WINDOWS
+    const juce::String os = "win";
+#elif JUCE_MAC
+    const juce::String os = "mac";
+#elif JUCE_LINUX
+    const juce::String os = "linux";
+#elif JUCE_BSD
+    const juce::String os = "bsd";
+#else
+    const juce::String os = "unknown";
+#endif
+
+    return os + "-" + arch;
 }
 
 PuponvstAudioProcessor::PuponvstAudioProcessor()
@@ -45,6 +73,22 @@ PuponvstAudioProcessor::PuponvstAudioProcessor()
 
     // Ensure audio-side defaults are valid even before any editor is created.
     syncEngineFromParameters();
+
+    // 启动时延迟 5 秒检查一次更新（进程级去重，避免多实例重复触发）
+    static std::atomic<bool> updateOnceFlag{false};
+    if (!updateOnceFlag.exchange(true, std::memory_order_acquire))
+    {
+        juce::Timer::callAfterDelay(5000, [] {
+            pupon::network::CheckForUpdatesAsync(
+                "pupon",
+                juce::String(JucePlugin_VersionString),
+                GetUpdatePlatformString(),
+                [](const pupon::network::UpdateInfo& info) {
+                    if (info.has_update)
+                        pupon::network::ShowUpdateDialog(info);
+                });
+        });
+    }
 }
 
 PuponvstAudioProcessor::~PuponvstAudioProcessor() 

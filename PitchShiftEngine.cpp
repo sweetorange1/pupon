@@ -57,6 +57,35 @@ int estimateShifterLatencySamples(RubberBandLiveShifter& shifter, int rbBlockSiz
     return juce::jmax(0, maxIndex);
 }
 
+// Rubber Band R3 引擎在"首次 shift()"时会往输入环形缓冲预填充
+// getWindowSourceSize() * pitchScale 个零（R3LiveShifter::shift 中的 m_firstProcess 分支），
+// 而该缓冲容量固定为 getWindowSourceSize() * 4。
+// 当 pitchScale >= 4（即 >= +24 半音）时，这段预填充会直接把 inbuf 写满，
+// R3LiveShifter::process 随即打印
+//   "ERROR: internal error: insufficient space in inbuf (wanted, got): (512, 0)"
+// 并丢弃这一块输入（听感上表现为开声瞬间丢一小段，之后自动恢复）。
+//
+// 规避方式：在 pitchScale = 1.0 下先跑一个静音块，把"首次 pre-pad"消耗掉
+//（此时 pad 只有 getWindowSourceSize()，远小于容量）；之后再设置目标 pitchScale。
+// 此后 m_firstProcess 已为 false，后续 shift() 不再 pre-pad，也就不会写满 inbuf。
+//
+// 注意：每当调用 shifter->reset()，shifter 会回到"首次处理"状态，
+// 因此 reset() 之后必须重新预热并重设 pitchScale。
+void warmUpShifter(RubberBandLiveShifter& shifter, int rbBlockSize)
+{
+    if (rbBlockSize <= 0)
+        return;
+
+    std::vector<float> in ((size_t) rbBlockSize, 0.0f);
+    std::vector<float> out((size_t) rbBlockSize, 0.0f);
+
+    const float* inPtrs [1] = { in.data()  };
+    float*       outPtrs[1] = { out.data() };
+
+    shifter.setPitchScale(1.0);
+    shifter.shift(inPtrs, outPtrs);
+}
+
 void primeDelayLine(std::vector<float>& ring, int& head, int& tail, int delaySamples)
 {
     head = 0;
@@ -246,10 +275,15 @@ void PitchShiftEngine::prepare(double newSampleRate, int maxBlockSize, int numCh
             {
                 s.shifter = std::make_unique<RubberBandLiveShifter>(
                     (size_t)std::llround(sampleRate), /* channels */ 1, rbOptions);
-                s.shifter->setPitchScale(ratio);
 
                 s.rbBlockSize = (int)s.shifter->getBlockSize();
                 jassert(s.rbBlockSize > 0);
+
+                // 先在 pitchScale = 1.0 下预热（消耗 R3 首次 pre-pad），再设置目标 ratio。
+                // 顺序不能反：pre-pad 的大小与当前 pitchScale 成正比，
+                // ratio >= 4（>= +24 半音）时直接在 ratio 下首次 shift 会写满 inbuf。
+                warmUpShifter(*s.shifter, s.rbBlockSize);
+                s.shifter->setPitchScale(ratio);
 
                 s.inAccum.assign((size_t)s.rbBlockSize, 0.0f);
                 s.inAccumSize = 0;
@@ -273,8 +307,12 @@ void PitchShiftEngine::prepare(double newSampleRate, int maxBlockSize, int numCh
                 const int lat = estimateShifterLatencySamples(*s.shifter, s.rbBlockSize);
                 bandLatencySamples[(size_t)b] = juce::jmax(bandLatencySamples[(size_t)b], lat);
 
-                // 探测会推进内部状态，重置回实时处理初始态（保留当前 pitch ratio）。
+                // 探测会推进内部状态，重置回实时处理初始态。
+                // reset() 会让 shifter 回到"首次处理"状态，所以同样需要重新预热，
+                // 之后再恢复目标 pitch ratio。
                 s.shifter->reset();
+                warmUpShifter(*s.shifter, s.rbBlockSize);
+                s.shifter->setPitchScale(ratio);
 
                 s.alignDelaySamples = 0;
                 s.alignRing.clear();
@@ -361,7 +399,15 @@ void PitchShiftEngine::reset()
         for (int ch = 0; ch < 2; ++ch)
         {
             auto& s = state[(size_t)b][(size_t)ch];
-            if (s.shifter) s.shifter->reset();
+            if (s.shifter)
+            {
+                s.shifter->reset();
+                // reset() 之后 shifter 回到"首次处理"状态，需要重新预热并恢复 ratio，
+                // 否则下一次 shift() 的 pre-pad 会在 ratio >= 4 时写满 inbuf。
+                warmUpShifter(*s.shifter, s.rbBlockSize);
+                const double st = (double) dotSemitones[(size_t) b].load(std::memory_order_relaxed);
+                s.shifter->setPitchScale(std::pow(2.0, st / 12.0));
+            }
 
             std::fill(s.inAccum.begin(), s.inAccum.end(), 0.0f);
             s.inAccumSize = 0;

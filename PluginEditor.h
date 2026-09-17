@@ -5,7 +5,10 @@
 #include <memory>
 #include "PluginProcessor.h"
 
+namespace iisaac::telemetry { class Session; }
+
 class PuponvstAudioProcessorEditor : public juce::AudioProcessorEditor,
+                                     public juce::TooltipClient,
                                      private juce::Timer,
                                      private juce::AudioProcessorValueTreeState::Listener,
                                      private juce::AsyncUpdater
@@ -21,6 +24,7 @@ public:
     void mouseUp(const juce::MouseEvent& event) override;
     void mouseMove(const juce::MouseEvent& event) override;
     void mouseExit(const juce::MouseEvent& event) override;
+    juce::String getTooltip() override;
 
 private:
     class HeaderComboBox : public juce::ComboBox
@@ -125,9 +129,11 @@ private:
     // 时间相位（秒），单调累加，用于激光游走光斑、光球扫光等与时间相关的动画
     float animPhase = 0.0f;
     PuponvstAudioProcessor& processor;
+    std::unique_ptr<iisaac::telemetry::Session> telemetrySession;
+    juce::TooltipWindow telemetryTooltip { this };
     // GUI组件
     juce::Label titleLabel;       // 大标题 "Pupon"，字号 32
-    juce::Label versionLabel;     // 副标题 "v1.0.4"，小号普通无衬线字体
+    juce::Label versionLabel;     // 副标题 "v1.1.0"，小号普通无衬线字体
     bool isTitleHovered = false;
     PresetArrowButton presetPrevButton { "<" };
     HeaderComboBox presetCombo;
