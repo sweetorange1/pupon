@@ -74,7 +74,7 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   exit 1
 fi
 
-for cmd in hdiutil pkgbuild codesign; do
+for cmd in hdiutil pkgbuild codesign lipo; do
   if ! command -v "${cmd}" >/dev/null 2>&1; then
     echo "[ERROR] Missing required command: ${cmd}" >&2
     exit 1
@@ -118,6 +118,38 @@ fi
 log "  - VST3: ${VST3_BUNDLE}"
 log "  - AU  : ${AU_BUNDLE}"
 log "  - Presets: ${PRESET_SRC_DIR}"
+
+# 校验产物为 Universal 二进制（同时含 arm64 与 x86_64），单架构产物必须拦下，避免误分发。
+check_universal() {
+  local label="$1"
+  local bundle="$2"
+  local bin="${bundle}/Contents/MacOS/${PRODUCT_NAME}"
+
+  if [[ ! -f "${bin}" ]]; then
+    echo "[ERROR] 在 ${bundle} 中未找到可执行文件 Contents/MacOS/${PRODUCT_NAME}" >&2
+    exit 1
+  fi
+
+  local archs
+  archs="$(lipo -archs "${bin}" 2>/dev/null || true)"
+  if [[ -z "${archs}" ]]; then
+    echo "[ERROR] 无法用 lipo 读取 ${label} 的架构信息: ${bin}" >&2
+    exit 1
+  fi
+
+  echo "[INFO] ${label} 架构: ${archs}"
+  if [[ "${archs}" != *arm64* || "${archs}" != *x86_64* ]]; then
+    echo "[ERROR] ${label} 不是 Universal 二进制（需同时包含 arm64 与 x86_64，当前: ${archs}）" >&2
+    echo "        请删除构建缓存后重新 configure + 完整重编：" >&2
+    echo "        rm -rf cmake-build-release" >&2
+    echo "        cmake -B cmake-build-release -DCMAKE_BUILD_TYPE=Release" >&2
+    echo "        cmake --build cmake-build-release --config Release" >&2
+    exit 1
+  fi
+}
+
+check_universal "VST3" "${VST3_BUNDLE}"
+check_universal "AU"   "${AU_BUNDLE}"
 
 if [[ "${DO_SIGN}" -eq 1 ]]; then
   log "Step 2/6 Ad-hoc sign plugin bundles"
