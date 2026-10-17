@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.1.2-blue" alt="Version">
   <img src="https://img.shields.io/badge/platform-Windows%20%2F%20macOS-lightgrey" alt="Platform">
   <img src="https://img.shields.io/badge/framework-JUCE%208.0.12-orange" alt="JUCE">
 </p>
@@ -84,7 +84,7 @@ cmake --build cmake-build-release --config Release
 ```bash
 # Windows（需先安装 Inno Setup 6 / Requires Inno Setup 6）
 build_installer.bat
-# 产物 Output：dist\Pupon_Setup_1.1.0_x64.exe
+# 产物 Output：dist\Pupon_Setup_1.1.2_x64.exe
 
 # macOS（需在 macOS 上运行 / must run on macOS）
 ./build_macos_installer.sh          # 产出 .pkg + .dmg
