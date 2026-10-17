@@ -33,11 +33,11 @@ UI 由"五颗珍珠 + 两条射线 + 一条正态曲线 + 一条滤波器抛物�
 | 厂商代码 / Manufacturer Code | `Pupo` |
 | 插件代码 / Plug-in Code | `Pupn` |
 | 分类 / Category | `Fx / Pitch`（AU: `kAudioUnitType_Effect`） |
-| Bundle ID | `cn.iisaacbeas.Pupon` |
+| Bundle ID | `cn.iisaacbeats.Pupon` |
 | 仓库 / Repository | https://github.com/sweetorange1/pupon.git |
 | 域名 / Website | https://iisaacbeats.cn |
 
-> ⚠️ `COMPANY_NAME` / `BUNDLE_ID` 在 CMake 中写作 `iisaacbeas`（少一个 `t`），而安装器与官网用 `iisaacbeats`。这是既有历史拼写，**不要顺手改**：改 Bundle ID 会导致 macOS 上宿主识别为另一个插件。
+> 注：v1.1.2 起 `COMPANY_NAME` / `BUNDLE_ID` 已统一为 `iisaacbeats`（修正历史上的 `iisaacbeas` 拼写）。插件识别仍由 Manufacturer Code + Plug-in Code 决定，不受 Bundle ID 影响；macOS 用户升级后如未显示新版本，重新扫描插件目录即可。
 
 ### 1.2 功能一览
 
@@ -345,7 +345,7 @@ setStateInformation：MemoryBlock → 字符串 → fromXml() → 读属性 → 
 
 ### 6.7 已知小问题（保留现状）
 
-- CMake 中 `iisaacbeas`（少一个 `t`）与安装器 / 官网的 `iisaacbeats` 不一致：改 Bundle ID 会让 macOS 宿主视为新插件，保持原样
+- v1.1.2 已修正 CMake 中 `iisaacbeas` 的拼写，`COMPANY_NAME` / `BUNDLE_ID` 与安装器 / 官网统一为 `iisaacbeats`
 - `ParameterIDs::isVerticalRay` 未注册进参数树，属历史遗留
 
 ---
