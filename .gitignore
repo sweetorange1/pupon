@@ -18,6 +18,9 @@ Thumbs.db
 JuceLibraryCode/
 .gradle/
 
+# Installer output
+dist/
+
 # Binary files
 *.exe
 *.dll

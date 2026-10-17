@@ -8,7 +8,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="${SCRIPT_DIR}"
-BUILD_DIR="${PROJECT_ROOT}/cmake-build-release"
+BUILD_DIR="${PROJECT_ROOT}/build"
 ARTEFACTS_DIR="${BUILD_DIR}/Puponvst_artefacts/Release"
 DIST_DIR="${PROJECT_ROOT}/dist"
 WORK_DIR="${DIST_DIR}/.mac_installer_work"
@@ -141,9 +141,9 @@ check_universal() {
   if [[ "${archs}" != *arm64* || "${archs}" != *x86_64* ]]; then
     echo "[ERROR] ${label} 不是 Universal 二进制（需同时包含 arm64 与 x86_64，当前: ${archs}）" >&2
     echo "        请删除构建缓存后重新 configure + 完整重编：" >&2
-    echo "        rm -rf cmake-build-release" >&2
-    echo "        cmake -B cmake-build-release -DCMAKE_BUILD_TYPE=Release" >&2
-    echo "        cmake --build cmake-build-release --config Release" >&2
+    echo "        rm -rf build" >&2
+    echo "        cmake -B build -DCMAKE_BUILD_TYPE=Release" >&2
+    echo "        cmake --build build --config Release" >&2
     exit 1
   fi
 }
