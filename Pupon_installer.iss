@@ -1,5 +1,5 @@
 #define MyAppName "Pupon"
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.1.1"
 #define MyAppPublisher "iisaacbeats.cn"
 #define MyPluginBundle "Pupon.vst3"
 
@@ -11,7 +11,9 @@
 #endif
 
 [Setup]
-AppId={{0E3BF70B-5D5C-4F0F-B6E4-50F8C4B55C01}
+; 独立 AppId：旧版与 SpectrumTag 共用 0E3BF70B-...，会导致两个安装包互相升级/卸载。
+; 改为独立 ID 后与 SpectrumTag 完全解耦；旧版用户需先手动卸载旧 pupon。
+AppId={{7869796B-D55D-495F-BF5D-C8142F3D4A6D}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}

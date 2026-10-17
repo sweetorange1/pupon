@@ -3,8 +3,8 @@ setlocal
 
 REM ============================================================
 REM  Pupon - Windows Release Installer Builder
-REM  Version : 1.1.0
-REM  Output  : dist\Pupon_Setup_1.1.0_x64.exe
+REM  Version : 1.1.1
+REM  Output  : dist\Pupon_Setup_1.1.1_x64.exe
 REM
 REM  设计原则（KISS）：本脚本不触碰编译。
 REM    1) 校验 Release 版 VST3 产物是否存在（自动探测多个构建目录）
@@ -13,7 +13,7 @@ REM    3) 调用 ISCC 打包，产物输出到 dist\
 REM ============================================================
 
 set "APP_NAME=Pupon"
-set "APP_VERSION=1.1.0"
+set "APP_VERSION=1.1.1"
 set "SCRIPT_DIR=%~dp0"
 set "ISS_FILE=%SCRIPT_DIR%Pupon_installer.iss"
 set "DIST_DIR=%SCRIPT_DIR%dist"
@@ -31,7 +31,11 @@ if not exist "%ISS_FILE%" (
 REM ---------- 1) 自动探测 VST3 顶层目录（包含 Pupon.vst3 bundle 的父目录）----------
 set "VST3_DIR="
 
-if exist "%SCRIPT_DIR%cmake-build-release-visual-studio\Puponvst_artefacts\Release\VST3\Pupon.vst3" (
+if exist "%SCRIPT_DIR%build\msvc\Puponvst_artefacts\Release\VST3\Pupon.vst3\Contents\x86_64-win\Pupon.vst3" (
+  set "VST3_DIR=%SCRIPT_DIR%build\msvc\Puponvst_artefacts\Release\VST3"
+)
+
+if not defined VST3_DIR if exist "%SCRIPT_DIR%cmake-build-release-visual-studio\Puponvst_artefacts\Release\VST3\Pupon.vst3" (
   set "VST3_DIR=%SCRIPT_DIR%cmake-build-release-visual-studio\Puponvst_artefacts\Release\VST3"
 )
 
@@ -70,12 +74,10 @@ echo [INFO] 编译器:   "%ISCC_PATH%"
 echo [INFO] 安装脚本: "%ISS_FILE%"
 echo [INFO] VST3 产物: "%VST3_DIR%"
 
-set "ISCC_EXTRA_FLAGS=-DVST3_DIR=%VST3_DIR%"
-
 echo [INFO] 开始打包 ...
 echo ------------------------------------------------------------
 
-"%ISCC_PATH%" %ISCC_EXTRA_FLAGS% "%ISS_FILE%"
+"%ISCC_PATH%" /DVST3_DIR="%VST3_DIR%" "%ISS_FILE%"
 
 if errorlevel 1 (
   echo ------------------------------------------------------------

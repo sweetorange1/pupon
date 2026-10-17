@@ -10,7 +10,7 @@ if (NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
 endif()
 
-project(Puponvst VERSION 1.1.0 LANGUAGES C CXX)
+project(Puponvst VERSION 1.1.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -79,7 +79,7 @@ endif()
 juce_add_plugin(
         Puponvst
         PRODUCT_NAME "Pupon"
-        VERSION 1.1.0
+        VERSION 1.1.1
         COMPANY_NAME "iisaacbeas.cn"
         BUNDLE_ID "cn.iisaacbeas.Pupon"
         PLUGIN_MANUFACTURER_CODE Pupo
